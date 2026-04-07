@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exames Laboratoriais — Daniel Luz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f23;
+    --card-bg: #1a1a2e;
+    --card-hover: #16213e;
+    --text-primary: #e0e0e0;
+    --text-secondary: #888;
+    --accent-green: #00C853;
+    --warning-yellow: #FFD600;
+    --danger-red: #FF1744;
+    --gray: #555;
+    --border: #2a2a4a;
+    --radius-card: 12px;
+    --radius-btn: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-left h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+  .header-left p {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .header-right {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .stat-pill {
+    text-align: center;
+  }
+  .stat-pill .label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .stat-pill .value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* ── CONTROLS ── */
+  .controls {
+    padding: 20px 32px 0;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-btn {
+    padding: 7px 18px;
+    border-radius: var(--radius-btn);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .filter-btn:hover { border-color: var(--accent-green); color: var(--accent-green); }
+  .filter-btn.active {
+    background: var(--accent-green);
+    border-color: var(--accent-green);
+    color: #000;
+    font-weight: 600;
+  }
+
+  /* ── CARDS GRID ── */
+  #overview {
+    padding: 20px 32px 40px;
+    transition: opacity 0.2s;
+  }
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  @media (min-width: 640px)  { .cards-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 1024px) { .cards-grid { grid-template-columns: repeat(4, 1fr); } }
+
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius-card);
+    padding: 16px;
+    border-left: 4px solid var(--gray);
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover {
+    background: var(--card-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .card.green  { border-left-color: var(--accent-green); }
+  .card.yellow { border-left-color: var(--warning-yellow); }
+  .card.red    { border-left-color: var(--danger-red); }
+  .card.gray   { border-left-color: var(--gray); }
+
+  .card-name {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  .card-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .card-unit {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+  }
+  .card.green  .card-value { color: var(--accent-green); }
+  .card.yellow .card-value { color: var(--warning-yellow); }
+  .card.red    .card-value { color: var(--danger-red); }
+  .card.gray   .card-value { color: var(--text-secondary); }
+
+  .card-date {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+  .card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-trend {
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+  .trend-up   { color: var(--danger-red); }
+  .trend-down { color: var(--accent-green); }
+  .trend-stable { color: var(--text-secondary); }
+
+  .sparkline {
+    width: 60px;
+    height: 20px;
+    overflow: visible;
+  }
+
+  /* ── DETAIL VIEW ── */
+  #detail {
+    display: none;
+    padding: 20px 32px 40px;
+    animation: fadeIn 0.2s ease;
+  }
+  #detail.visible { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .detail-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .back-btn {
+    padding: 8px 20px;
+    border-radius: var(--radius-btn);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .back-btn:hover { border-color: var(--text-primary); color: var(--text-primary); }
+
+  .detail-title-block { flex: 1; }
+  .detail-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+  .detail-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+  }
+  .detail-unit {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+  .category-badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .badge-hematologico { background: rgba(33,150,243,0.2); color: #64B5F6; }
+  .badge-metabolico   { background: rgba(255,152,0,0.2);  color: #FFB74D; }
+
+  .chart-container {
+    background: var(--card-bg);
+    border-radius: var(--radius-card);
+    padding: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    height: 360px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  @media (min-width: 480px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 768px) { .stats-grid { grid-template-columns: repeat(5, 1fr); } }
+
+  .stat-card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .stat-card .s-label {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 6px;
+  }
+  .stat-card .s-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  /* hidden class */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ── PASSWORD GATE ── -->
+<div id="auth-gate" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f0f23;">
+  <div style="text-align:center;background:#1a1a2e;padding:40px 48px;border-radius:16px;border:1px solid #2a2a4a;max-width:380px;width:90%;">
+    <div style="font-size:48px;margin-bottom:16px;">&#128274;</div>
+    <h2 style="color:#e0e0e0;font-family:Inter,sans-serif;margin-bottom:8px;">Acesso Restrito</h2>
+    <p style="color:#888;font-family:Inter,sans-serif;font-size:14px;margin-bottom:24px;">Exames pessoais — digite a senha</p>
+    <input id="auth-input" type="password" placeholder="Senha" autofocus
+      style="width:100%;padding:12px 16px;border-radius:8px;border:1px solid #2a2a4a;background:#0f0f23;color:#e0e0e0;font-family:Inter,sans-serif;font-size:16px;outline:none;margin-bottom:12px;"
+      onkeydown="if(event.key==='Enter')checkAuth()">
+    <button onclick="checkAuth()"
+      style="width:100%;padding:12px;border-radius:8px;border:none;background:#00C853;color:#fff;font-family:Inter,sans-serif;font-size:15px;font-weight:600;cursor:pointer;">Entrar</button>
+    <p id="auth-error" style="color:#FF1744;font-family:Inter,sans-serif;font-size:13px;margin-top:12px;display:none;">Senha incorreta</p>
+  </div>
+</div>
+<script>
+function checkAuth(){
+  var p=document.getElementById('auth-input').value;
+  if(p==='07092013'){
+    document.getElementById('auth-gate').style.display='none';
+    document.getElementById('main-app').style.display='';
+    sessionStorage.setItem('exames-auth','1');
+  } else {
+    document.getElementById('auth-error').style.display='block';
+    document.getElementById('auth-input').value='';
+    document.getElementById('auth-input').focus();
+  }
+}
+if(sessionStorage.getItem('exames-auth')==='1'){
+  document.addEventListener('DOMContentLoaded',function(){
+    document.getElementById('auth-gate').style.display='none';
+    document.getElementById('main-app').style.display='';
+  });
+}
+</script>
+
+<div id="main-app" style="display:none;">
+<!-- ── HEADER ── -->
+<header class="header">
+  <div class="header-left">
+    <h1 id="patient-name"></h1>
+    <p id="patient-info"></p>
+  </div>
+  <div class="header-right">
+    <div class="stat-pill">
+      <div class="label">Idade</div>
+      <div class="value" id="patient-age"></div>
+    </div>
+    <div class="stat-pill">
+      <div class="label">Último Exame</div>
+      <div class="value" id="last-exam-date"></div>
+    </div>
+    <div class="stat-pill">
+      <div class="label">Total Exames</div>
+      <div class="value" id="total-exams"></div>
+    </div>
+  </div>
+</header>
+
+<!-- ── OVERVIEW ── -->
+<div id="overview">
+  <div class="controls">
+    <button class="filter-btn active" data-filter="todos">Todos</button>
+    <button class="filter-btn" data-filter="metabolico">Metabólico</button>
+    <button class="filter-btn" data-filter="hematologico">Hematológico</button>
+  </div>
+  <div style="height:16px"></div>
+  <div class="cards-grid" id="cards-grid"></div>
+</div>
+
+<!-- ── DETAIL ── -->
+<div id="detail">
+  <div class="detail-header">
+    <button class="back-btn" id="back-btn">← Voltar</button>
+    <div class="detail-title-block">
+      <div class="detail-title" id="detail-name"></div>
+      <div class="detail-subtitle">
+        <span class="detail-unit" id="detail-unit"></span>
+        <span class="category-badge" id="detail-badge"></span>
+      </div>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="detail-chart"></canvas>
+  </div>
+  <div class="stats-grid" id="stats-grid"></div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+const EXAMES_DATA = {
+  "paciente": "Daniel Matos Botelho Luz",
+  "nascimento": "1982-11-20",
+  "extraido_em": "2026-04-07",
+  "exames": [
+    {
+      "data": "2002-07-20",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "4016218",
+      "arquivo": "Resultado-Laudo-15-2002-4016218-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5600000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5900000.0
+        },
+        "Hemoglobina": {
+          "valor": 16.7,
+          "unidade": "g/dl",
+          "ref_min": 13.5,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 49.5,
+          "unidade": "%",
+          "ref_min": 41.0,
+          "ref_max": 53.0
+        },
+        "VCM": {
+          "valor": 88.5,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 29.8,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 34.0
+        },
+        "CHCM": {
+          "valor": 33.7,
+          "unidade": "g/dl",
+          "ref_min": 31.0,
+          "ref_max": 36.0
+        },
+        "RDW": {
+          "valor": 12.5,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 15.0
+        },
+        "Leucocitos": {
+          "valor": 7710.0,
+          "unidade": "/mm3",
+          "ref_min": 3500.0,
+          "ref_max": 10500.0
+        },
+        "Plaquetas": {
+          "valor": 277000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        }
+      }
+    },
+    {
+      "data": "2002-08-28",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "4019394",
+      "arquivo": "Resultado-Laudo-15-2002-4019394-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5900000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5900000.0
+        },
+        "Hemoglobina": {
+          "valor": 16.9,
+          "unidade": "g/dl",
+          "ref_min": 13.5,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 52.8,
+          "unidade": "%",
+          "ref_min": 41.0,
+          "ref_max": 53.0
+        },
+        "VCM": {
+          "valor": 89.4,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 28.6,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 34.0
+        },
+        "CHCM": {
+          "valor": 32.0,
+          "unidade": "g/dl",
+          "ref_min": 31.0,
+          "ref_max": 36.0
+        },
+        "RDW": {
+          "valor": 12.4,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 15.0
+        },
+        "Leucocitos": {
+          "valor": 9400.0,
+          "unidade": "/mm3",
+          "ref_min": 3500.0,
+          "ref_max": 10500.0
+        },
+        "Plaquetas": {
+          "valor": 238000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        }
+      }
+    },
+    {
+      "data": "2003-05-08",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "5011106",
+      "arquivo": "Resultado-Laudo-15-2003-5011106-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5710000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5900000.0
+        },
+        "Hemoglobina": {
+          "valor": 16.7,
+          "unidade": "g/dl",
+          "ref_min": 13.5,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 49.2,
+          "unidade": "%",
+          "ref_min": 41.0,
+          "ref_max": 53.0
+        },
+        "VCM": {
+          "valor": 86.1,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 29.3,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 34.0
+        },
+        "CHCM": {
+          "valor": 34.0,
+          "unidade": "g/dl",
+          "ref_min": 31.0,
+          "ref_max": 36.0
+        },
+        "RDW": {
+          "valor": 13.1,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 15.0
+        },
+        "Leucocitos": {
+          "valor": 7300.0,
+          "unidade": "/mm3",
+          "ref_min": 3500.0,
+          "ref_max": 10500.0
+        },
+        "Plaquetas": {
+          "valor": 260000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        }
+      }
+    },
+    {
+      "data": "2004-02-09",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "6003800",
+      "arquivo": "Resultado-Laudo-15-2004-6003800-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5340000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5900000.0
+        },
+        "Hemoglobina": {
+          "valor": 15.9,
+          "unidade": "g/dl",
+          "ref_min": 13.5,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 47.6,
+          "unidade": "%",
+          "ref_min": 41.0,
+          "ref_max": 53.0
+        },
+        "VCM": {
+          "valor": 88.9,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 29.8,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 34.0
+        },
+        "CHCM": {
+          "valor": 33.4,
+          "unidade": "g/dl",
+          "ref_min": 31.0,
+          "ref_max": 36.0
+        },
+        "RDW": {
+          "valor": 12.5,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 15.0
+        },
+        "Leucocitos": {
+          "valor": 6900.0,
+          "unidade": "/mm3",
+          "ref_min": 3500.0,
+          "ref_max": 10500.0
+        },
+        "Plaquetas": {
+          "valor": 238000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        },
+        "Glicose": {
+          "valor": 84.0,
+          "unidade": "mg/dL",
+          "ref_min": 60.0,
+          "ref_max": 99.0
+        },
+        "Creatinina": {
+          "valor": 1.1,
+          "unidade": "mg/dL",
+          "ref_min": 0.76,
+          "ref_max": 1.24
+        }
+      }
+    },
+    {
+      "data": "2006-05-12",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "8015487",
+      "arquivo": "Resultado-Laudo-15-2006-8015487-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5530000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5900000.0
+        },
+        "Hemoglobina": {
+          "valor": 16.3,
+          "unidade": "g/dl",
+          "ref_min": 13.5,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 49.4,
+          "unidade": "%",
+          "ref_min": 41.0,
+          "ref_max": 53.0
+        },
+        "VCM": {
+          "valor": 89.3,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 29.6,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 34.0
+        },
+        "CHCM": {
+          "valor": 33.1,
+          "unidade": "g/dl",
+          "ref_min": 31.0,
+          "ref_max": 36.0
+        },
+        "RDW": {
+          "valor": 12.8,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 15.0
+        },
+        "Leucocitos": {
+          "valor": 10900.0,
+          "unidade": "/mm3",
+          "ref_min": 3500.0,
+          "ref_max": 10500.0
+        },
+        "Plaquetas": {
+          "valor": 248000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        },
+        "Glicose": {
+          "valor": 85.0,
+          "unidade": "mg/dL",
+          "ref_min": 60.0,
+          "ref_max": 99.0
+        },
+        "Colesterol_Total": {
+          "valor": 158.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 190.0
+        },
+        "HDL": {
+          "valor": 56.0,
+          "unidade": "mg/dL",
+          "ref_min": 40.0,
+          "ref_max": null
+        },
+        "LDL": {
+          "valor": 91.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 130.0
+        },
+        "Triglicerides": {
+          "valor": 54.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 150.0
+        }
+      }
+    },
+    {
+      "data": "2008-05-07",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "1015550",
+      "arquivo": "Resultado-Laudo-15-2008-1015550-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5130000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5900000.0
+        },
+        "Hemoglobina": {
+          "valor": 15.3,
+          "unidade": "g/dl",
+          "ref_min": 13.5,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 44.9,
+          "unidade": "%",
+          "ref_min": 41.0,
+          "ref_max": 53.0
+        },
+        "VCM": {
+          "valor": 87.5,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 29.8,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 34.0
+        },
+        "CHCM": {
+          "valor": 34.0,
+          "unidade": "g/dl",
+          "ref_min": 31.0,
+          "ref_max": 36.0
+        },
+        "RDW": {
+          "valor": 12.9,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 15.0
+        },
+        "Leucocitos": {
+          "valor": 7400.0,
+          "unidade": "/mm3",
+          "ref_min": 3500.0,
+          "ref_max": 10500.0
+        },
+        "Plaquetas": {
+          "valor": 233000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        },
+        "Glicose": {
+          "valor": 77.0,
+          "unidade": "mg/dL",
+          "ref_min": 60.0,
+          "ref_max": 99.0
+        },
+        "LDL": {
+          "valor": 90.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 130.0
+        },
+        "Triglicerides": {
+          "valor": 31.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 150.0
+        }
+      }
+    },
+    {
+      "data": "2011-08-20",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "4055077",
+      "arquivo": "Resultado-Laudo-11-2011-4055077-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5240000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5900000.0
+        },
+        "Hemoglobina": {
+          "valor": 15.7,
+          "unidade": "g/dl",
+          "ref_min": 13.5,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 46.5,
+          "unidade": "%",
+          "ref_min": 41.0,
+          "ref_max": 53.0
+        },
+        "VCM": {
+          "valor": 88.8,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 30.1,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 34.0
+        },
+        "CHCM": {
+          "valor": 33.8,
+          "unidade": "g/dl",
+          "ref_min": 31.0,
+          "ref_max": 36.0
+        },
+        "RDW": {
+          "valor": 14.1,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 15.0
+        },
+        "Leucocitos": {
+          "valor": 5300.0,
+          "unidade": "/mm3",
+          "ref_min": 3500.0,
+          "ref_max": 10500.0
+        },
+        "Plaquetas": {
+          "valor": 208000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        },
+        "Glicose": {
+          "valor": 80.0,
+          "unidade": "mg/dL",
+          "ref_min": 60.0,
+          "ref_max": 99.0
+        },
+        "Colesterol_Total": {
+          "valor": 186.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 190.0
+        },
+        "HDL": {
+          "valor": 44.0,
+          "unidade": "mg/dL",
+          "ref_min": 40.0,
+          "ref_max": null
+        },
+        "LDL": {
+          "valor": 112.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 130.0
+        },
+        "Triglicerides": {
+          "valor": 44.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 150.0
+        }
+      }
+    },
+    {
+      "data": "2012-08-18",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "5052883",
+      "arquivo": "Resultado-Laudo-11-2012-5052883-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 4970000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5500000.0
+        },
+        "Hemoglobina": {
+          "valor": 15.1,
+          "unidade": "g/dl",
+          "ref_min": 13.0,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 44.1,
+          "unidade": "%",
+          "ref_min": 40.0,
+          "ref_max": 50.0
+        },
+        "VCM": {
+          "valor": 88.7,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 30.5,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 32.0
+        },
+        "CHCM": {
+          "valor": 34.3,
+          "unidade": "g/dl",
+          "ref_min": 31.5,
+          "ref_max": 36.5
+        },
+        "RDW": {
+          "valor": 14.1,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 14.6
+        },
+        "Leucocitos": {
+          "valor": 5900.0,
+          "unidade": "/mm3",
+          "ref_min": 4000.0,
+          "ref_max": 11000.0
+        },
+        "Plaquetas": {
+          "valor": 214000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        },
+        "Glicose": {
+          "valor": 86.0,
+          "unidade": "mg/dL",
+          "ref_min": 60.0,
+          "ref_max": 99.0
+        },
+        "Colesterol_Total": {
+          "valor": 174.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 190.0
+        },
+        "HDL": {
+          "valor": 67.0,
+          "unidade": "mg/dL",
+          "ref_min": 40.0,
+          "ref_max": null
+        },
+        "LDL": {
+          "valor": 98.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 130.0
+        },
+        "Triglicerides": {
+          "valor": 44.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 150.0
+        },
+        "Creatinina": {
+          "valor": 1.09,
+          "unidade": "mg/dL",
+          "ref_min": 0.76,
+          "ref_max": 1.24
+        }
+      }
+    },
+    {
+      "data": "2013-08-28",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "6078956",
+      "arquivo": "Resultado-Laudo-1-2013-6078956-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5200000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5500000.0
+        },
+        "Hemoglobina": {
+          "valor": 15.4,
+          "unidade": "g/dl",
+          "ref_min": 13.0,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 45.9,
+          "unidade": "%",
+          "ref_min": 40.0,
+          "ref_max": 50.0
+        },
+        "VCM": {
+          "valor": 88.2,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 29.7,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 32.0
+        },
+        "CHCM": {
+          "valor": 33.6,
+          "unidade": "g/dl",
+          "ref_min": 31.5,
+          "ref_max": 36.5
+        },
+        "RDW": {
+          "valor": 13.9,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 14.6
+        },
+        "Leucocitos": {
+          "valor": 6300.0,
+          "unidade": "/mm3",
+          "ref_min": 4000.0,
+          "ref_max": 11000.0
+        },
+        "Plaquetas": {
+          "valor": 218000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        },
+        "Glicose": {
+          "valor": 85.0,
+          "unidade": "mg/dL",
+          "ref_min": 60.0,
+          "ref_max": 99.0
+        },
+        "Colesterol_Total": {
+          "valor": 180.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 190.0
+        },
+        "HDL": {
+          "valor": 51.0,
+          "unidade": "mg/dL",
+          "ref_min": 40.0,
+          "ref_max": null
+        },
+        "LDL": {
+          "valor": 106.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 130.0
+        },
+        "Triglicerides": {
+          "valor": 51.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 150.0
+        }
+      }
+    },
+    {
+      "data": "2014-01-28",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "7010807",
+      "arquivo": "Resultado-Laudo-1-2014-7010807-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5400000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5500000.0
+        },
+        "Hemoglobina": {
+          "valor": 16.0,
+          "unidade": "g/dl",
+          "ref_min": 13.0,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 47.5,
+          "unidade": "%",
+          "ref_min": 40.0,
+          "ref_max": 50.0
+        },
+        "VCM": {
+          "valor": 87.9,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 29.7,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 32.0
+        },
+        "CHCM": {
+          "valor": 33.8,
+          "unidade": "g/dl",
+          "ref_min": 31.5,
+          "ref_max": 36.5
+        },
+        "RDW": {
+          "valor": 13.2,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 14.6
+        },
+        "Leucocitos": {
+          "valor": 6000.0,
+          "unidade": "/mm3",
+          "ref_min": 4000.0,
+          "ref_max": 11000.0
+        },
+        "Plaquetas": {
+          "valor": 189000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        }
+      }
+    },
+    {
+      "data": "2017-11-02",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "1215781",
+      "arquivo": "Resultado-Laudo-1-2017-1215781-1.pdf",
+      "resultados": {
+        "Colesterol_Total": {
+          "valor": 211.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 190.0
+        },
+        "HDL": {
+          "valor": 57.0,
+          "unidade": "mg/dL",
+          "ref_min": 40.0,
+          "ref_max": null
+        },
+        "LDL": {
+          "valor": 140.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 130.0
+        },
+        "Triglicerides": {
+          "valor": 63.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 150.0
+        }
+      }
+    },
+    {
+      "data": "2023-05-09",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "7093229",
+      "arquivo": "Resultado-Laudo-11-2023-7093229-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5030000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5500000.0
+        },
+        "Hemoglobina": {
+          "valor": 15.0,
+          "unidade": "g/dl",
+          "ref_min": 13.0,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 43.7,
+          "unidade": "%",
+          "ref_min": 40.0,
+          "ref_max": 50.0
+        },
+        "VCM": {
+          "valor": 86.9,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 29.8,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 32.0
+        },
+        "CHCM": {
+          "valor": 34.3,
+          "unidade": "g/dl",
+          "ref_min": 32.0,
+          "ref_max": 36.0
+        },
+        "Leucocitos": {
+          "valor": 6300.0,
+          "unidade": "/mm3",
+          "ref_min": 4000.0,
+          "ref_max": 11000.0
+        },
+        "Plaquetas": {
+          "valor": 290000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        },
+        "Creatinina": {
+          "valor": 0.84,
+          "unidade": "mg/dL",
+          "ref_min": 0.76,
+          "ref_max": 1.24
+        }
+      }
+    },
+    {
+      "data": "2023-10-26",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "7124591",
+      "arquivo": "Resultado-Laudo-11-2023-7124591-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5130000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5500000.0
+        },
+        "Hemoglobina": {
+          "valor": 14.8,
+          "unidade": "g/dl",
+          "ref_min": 13.0,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 43.9,
+          "unidade": "%",
+          "ref_min": 40.0,
+          "ref_max": 50.0
+        },
+        "VCM": {
+          "valor": 85.6,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 28.8,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 32.0
+        },
+        "CHCM": {
+          "valor": 33.7,
+          "unidade": "g/dl",
+          "ref_min": 32.0,
+          "ref_max": 36.0
+        },
+        "RDW": {
+          "valor": 13.8,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 14.8
+        },
+        "Leucocitos": {
+          "valor": 8370.0,
+          "unidade": "/mm3",
+          "ref_min": 4000.0,
+          "ref_max": 11000.0
+        },
+        "Plaquetas": {
+          "valor": 218000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        },
+        "Glicose": {
+          "valor": 85.0,
+          "unidade": "mg/dL",
+          "ref_min": 60.0,
+          "ref_max": 99.0
+        },
+        "Hemoglobina_Glicada": {
+          "valor": 5.6,
+          "unidade": "%",
+          "ref_min": null,
+          "ref_max": 5.7
+        },
+        "Colesterol_Total": {
+          "valor": 146.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 190.0
+        },
+        "HDL": {
+          "valor": 46.0,
+          "unidade": "mg/dL",
+          "ref_min": 40.0,
+          "ref_max": null
+        },
+        "Triglicerides": {
+          "valor": 60.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 150.0
+        },
+        "Creatinina": {
+          "valor": 1.0,
+          "unidade": "mg/dL",
+          "ref_min": 0.76,
+          "ref_max": 1.24
+        },
+        "Vitamina_B12": {
+          "valor": 244.0,
+          "unidade": "pg/mL",
+          "ref_min": 172.0,
+          "ref_max": 890.0
+        }
+      }
+    },
+    {
+      "data": "2025-08-30",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "9029610",
+      "arquivo": "Resultado-Laudo-190-2025-9029610-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5340000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5500000.0
+        },
+        "Hemoglobina": {
+          "valor": 15.7,
+          "unidade": "g/dl",
+          "ref_min": 13.0,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 46.1,
+          "unidade": "%",
+          "ref_min": 40.0,
+          "ref_max": 50.0
+        },
+        "VCM": {
+          "valor": 86.3,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 29.4,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 32.0
+        },
+        "CHCM": {
+          "valor": 34.1,
+          "unidade": "g/dl",
+          "ref_min": 32.0,
+          "ref_max": 36.0
+        },
+        "RDW": {
+          "valor": 13.2,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 14.8
+        },
+        "Leucocitos": {
+          "valor": 6540.0,
+          "unidade": "/mm3",
+          "ref_min": 4000.0,
+          "ref_max": 11000.0
+        },
+        "Plaquetas": {
+          "valor": 260000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        },
+        "Glicose": {
+          "valor": 84.0,
+          "unidade": "mg/dL",
+          "ref_min": 60.0,
+          "ref_max": 99.0
+        },
+        "Hemoglobina_Glicada": {
+          "valor": 5.6,
+          "unidade": "%",
+          "ref_min": null,
+          "ref_max": 5.7
+        },
+        "Colesterol_Total": {
+          "valor": 211.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 190.0
+        },
+        "HDL": {
+          "valor": 63.0,
+          "unidade": "mg/dL",
+          "ref_min": 40.0,
+          "ref_max": null
+        },
+        "LDL": {
+          "valor": 131.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 130.0
+        },
+        "Triglicerides": {
+          "valor": 76.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 150.0
+        },
+        "Creatinina": {
+          "valor": 0.93,
+          "unidade": "mg/dL",
+          "ref_min": 0.76,
+          "ref_max": 1.24
+        },
+        "Vitamina_B12": {
+          "valor": 259.0,
+          "unidade": "pg/mL",
+          "ref_min": 172.0,
+          "ref_max": 890.0
+        }
+      }
+    },
+    {
+      "data": "2026-04-04",
+      "laboratorio": "Hermes Pardini",
+      "pedido": "1013337",
+      "arquivo": "Resultado-Laudo-190-2026-1013337-1.pdf",
+      "resultados": {
+        "Hemacias": {
+          "valor": 5240000.0,
+          "unidade": "/mm3",
+          "ref_min": 4500000.0,
+          "ref_max": 5500000.0
+        },
+        "Hemoglobina": {
+          "valor": 15.2,
+          "unidade": "g/dl",
+          "ref_min": 13.0,
+          "ref_max": 17.5
+        },
+        "Hematocrito": {
+          "valor": 45.5,
+          "unidade": "%",
+          "ref_min": 40.0,
+          "ref_max": 50.0
+        },
+        "VCM": {
+          "valor": 86.8,
+          "unidade": "fl",
+          "ref_min": 80.0,
+          "ref_max": 100.0
+        },
+        "HCM": {
+          "valor": 29.0,
+          "unidade": "pg",
+          "ref_min": 26.0,
+          "ref_max": 32.0
+        },
+        "CHCM": {
+          "valor": 33.4,
+          "unidade": "g/dl",
+          "ref_min": 32.0,
+          "ref_max": 36.0
+        },
+        "RDW": {
+          "valor": 13.9,
+          "unidade": "%",
+          "ref_min": 11.5,
+          "ref_max": 14.8
+        },
+        "Leucocitos": {
+          "valor": 6560.0,
+          "unidade": "/mm3",
+          "ref_min": 4000.0,
+          "ref_max": 11000.0
+        },
+        "Plaquetas": {
+          "valor": 260000.0,
+          "unidade": "/mm3",
+          "ref_min": 150000.0,
+          "ref_max": 450000.0
+        },
+        "Glicose": {
+          "valor": 94.0,
+          "unidade": "mg/dL",
+          "ref_min": 60.0,
+          "ref_max": 99.0
+        },
+        "Hemoglobina_Glicada": {
+          "valor": 5.6,
+          "unidade": "%",
+          "ref_min": null,
+          "ref_max": 5.7
+        },
+        "Colesterol_Total": {
+          "valor": 222.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 190.0
+        },
+        "HDL": {
+          "valor": 60.0,
+          "unidade": "mg/dL",
+          "ref_min": 40.0,
+          "ref_max": null
+        },
+        "LDL": {
+          "valor": 142.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 130.0
+        },
+        "Triglicerides": {
+          "valor": 90.0,
+          "unidade": "mg/dL",
+          "ref_min": null,
+          "ref_max": 150.0
+        },
+        "Creatinina": {
+          "valor": 0.92,
+          "unidade": "mg/dL",
+          "ref_min": 0.76,
+          "ref_max": 1.24
+        },
+        "Vitamina_B12": {
+          "valor": 238.0,
+          "unidade": "pg/mL",
+          "ref_min": 172.0,
+          "ref_max": 890.0
+        }
+      }
+    }
+  ]
+};
+
+// ─────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────
+const DISPLAY_NAMES = {
+  Hemacias: 'Hemácias',
+  Hemoglobina: 'Hemoglobina',
+  Hematocrito: 'Hematócrito',
+  VCM: 'VCM',
+  HCM: 'HCM',
+  CHCM: 'CHCM',
+  RDW: 'RDW',
+  Leucocitos: 'Leucócitos',
+  Plaquetas: 'Plaquetas',
+  Glicose: 'Glicose',
+  Hemoglobina_Glicada: 'Hemoglobina Glicada',
+  Colesterol_Total: 'Colesterol Total',
+  HDL: 'HDL',
+  LDL: 'LDL',
+  Triglicerides: 'Triglicérides',
+  Creatinina: 'Creatinina',
+  Vitamina_B12: 'Vitamina B12',
+};
+
+const CATEGORIES = {
+  Hemacias: 'hematologico',
+  Hemoglobina: 'hematologico',
+  Hematocrito: 'hematologico',
+  VCM: 'hematologico',
+  HCM: 'hematologico',
+  CHCM: 'hematologico',
+  RDW: 'hematologico',
+  Leucocitos: 'hematologico',
+  Plaquetas: 'hematologico',
+  Glicose: 'metabolico',
+  Hemoglobina_Glicada: 'metabolico',
+  Colesterol_Total: 'metabolico',
+  HDL: 'metabolico',
+  LDL: 'metabolico',
+  Triglicerides: 'metabolico',
+  Creatinina: 'metabolico',
+  Vitamina_B12: 'metabolico',
+};
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+function calcAge(birthStr) {
+  const [y, m, d] = birthStr.split('-').map(Number);
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  if (today.getMonth() + 1 < m || (today.getMonth() + 1 === m && today.getDate() < d)) age--;
+  return age;
+}
+
+function fmtDate(isoStr) {
+  const [y, m, d] = isoStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function fmtVal(val) {
+  if (val >= 1000000) return (val / 1000000).toFixed(2) + 'M';
+  if (val >= 1000) return (val / 1000).toFixed(0) + 'k';
+  if (Number.isInteger(val)) return val.toString();
+  return val % 1 === 0 ? val.toFixed(0) : (parseFloat(val.toFixed(2))).toString();
+}
+
+/**
+ * Semaphore: 'green' | 'yellow' | 'red' | 'gray'
+ * green  = in range AND >10% from limits
+ * yellow = in range BUT <=10% from a limit
+ * red    = out of range
+ * gray   = no reference
+ */
+function getSemaphore(val, ref_min, ref_max) {
+  const hasMin = ref_min !== null && ref_min !== undefined;
+  const hasMax = ref_max !== null && ref_max !== undefined;
+  if (!hasMin && !hasMax) return 'gray';
+
+  // Check out of range
+  if (hasMin && val < ref_min) return 'red';
+  if (hasMax && val > ref_max) return 'red';
+
+  // In range: check 10% zone
+  const range = (hasMin && hasMax) ? (ref_max - ref_min) : (hasMax ? ref_max : ref_min) * 0.2;
+  const margin10 = range * 0.1;
+  const nearMin = hasMin && (val - ref_min) <= margin10;
+  const nearMax = hasMax && (ref_max - val) <= margin10;
+  if (nearMin || nearMax) return 'yellow';
+  return 'green';
+}
+
+/**
+ * Build per-indicator series: [{date, valor, ref_min, ref_max, laboratorio, arquivo}]
+ */
+function buildSeries() {
+  const series = {};
+  const sorted = [...EXAMES_DATA.exames].sort((a, b) => a.data.localeCompare(b.data));
+  for (const exame of sorted) {
+    for (const [key, res] of Object.entries(exame.resultados)) {
+      if (!series[key]) series[key] = [];
+      series[key].push({
+        date: exame.data,
+        valor: res.valor,
+        ref_min: res.ref_min,
+        ref_max: res.ref_max,
+        unidade: res.unidade,
+        laboratorio: exame.laboratorio,
+        arquivo: exame.arquivo,
+      });
+    }
+  }
+  return series;
+}
+
+// ─────────────────────────────────────────────
+// SPARKLINE (inline SVG)
+// ─────────────────────────────────────────────
+function buildSparkline(points, color) {
+  if (points.length < 2) return '';
+  const W = 60, H = 20, PAD = 2;
+  const vals = points.map(p => p.valor);
+  const minV = Math.min(...vals);
+  const maxV = Math.max(...vals);
+  const range = maxV - minV || 1;
+  const xs = points.map((_, i) => PAD + (i / (points.length - 1)) * (W - PAD * 2));
+  const ys = vals.map(v => H - PAD - ((v - minV) / range) * (H - PAD * 2));
+  const path = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
+  return `<svg class="sparkline" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
+}
+
+// ─────────────────────────────────────────────
+// TREND ARROW
+// ─────────────────────────────────────────────
+function getTrend(points) {
+  if (points.length < 2) return { arrow: '→', cls: 'trend-stable' };
+  const last = points[points.length - 1].valor;
+  const prev = points[points.length - 2].valor;
+  const pct = Math.abs(last - prev) / (prev || 1);
+  if (pct < 0.05) return { arrow: '→', cls: 'trend-stable' };
+  return last > prev
+    ? { arrow: '↑', cls: 'trend-up' }
+    : { arrow: '↓', cls: 'trend-down' };
+}
+
+// ─────────────────────────────────────────────
+// COLOR MAP
+// ─────────────────────────────────────────────
+const COLOR_MAP = {
+  green:  '#00C853',
+  yellow: '#FFD600',
+  red:    '#FF1744',
+  gray:   '#555555',
+};
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+const series = buildSeries();
+let activeFilter = 'todos';
+let detailChart = null;
+
+// Header
+document.getElementById('patient-name').textContent = EXAMES_DATA.paciente;
+const age = calcAge(EXAMES_DATA.nascimento);
+document.getElementById('patient-age').textContent = age + ' anos';
+document.getElementById('patient-info').textContent = `Nascimento: ${fmtDate(EXAMES_DATA.nascimento)} · Lab: Hermes Pardini`;
+document.getElementById('total-exams').textContent = EXAMES_DATA.exames.length;
+
+const sortedExames = [...EXAMES_DATA.exames].sort((a, b) => b.data.localeCompare(a.data));
+document.getElementById('last-exam-date').textContent = fmtDate(sortedExames[0].data);
+
+// ─────────────────────────────────────────────
+// RENDER CARDS
+// ─────────────────────────────────────────────
+function renderCards(filter) {
+  const grid = document.getElementById('cards-grid');
+  grid.innerHTML = '';
+
+  const indicators = Object.keys(DISPLAY_NAMES).filter(k => {
+    if (!series[k]) return false;
+    if (filter === 'todos') return true;
+    return CATEGORIES[k] === filter;
+  });
+
+  for (const key of indicators) {
+    const pts = series[key];
+    const last = pts[pts.length - 1];
+    const sem = getSemaphore(last.valor, last.ref_min, last.ref_max);
+    const color = COLOR_MAP[sem];
+    const trend = getTrend(pts);
+    const last5 = pts.slice(-5);
+    const sparkSVG = buildSparkline(last5, color);
+    const displayVal = fmtVal(last.valor);
+
+    const card = document.createElement('div');
+    card.className = `card ${sem}`;
+    card.dataset.key = key;
+    card.innerHTML = `
+      <div class="card-name">${DISPLAY_NAMES[key]}</div>
+      <div class="card-value-row">
+        <span class="card-value">${displayVal}</span>
+        <span class="card-unit">${last.unidade}</span>
+      </div>
+      <div class="card-date">${fmtDate(last.date)}</div>
+      <div class="card-bottom">
+        ${sparkSVG}
+        <span class="card-trend ${trend.cls}">${trend.arrow}</span>
+      </div>
+    `;
+    card.addEventListener('click', () => showDetail(key));
+    grid.appendChild(card);
+  }
+}
+
+renderCards('todos');
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    renderCards(activeFilter);
+  });
+});
+
+// ─────────────────────────────────────────────
+// DETAIL VIEW
+// ─────────────────────────────────────────────
+function showDetail(key) {
+  document.getElementById('overview').style.display = 'none';
+  const detail = document.getElementById('detail');
+  detail.classList.add('visible');
+
+  const pts = series[key];
+  const cat = CATEGORIES[key];
+  const displayName = DISPLAY_NAMES[key];
+  const unit = pts[0].unidade;
+
+  document.getElementById('detail-name').textContent = displayName;
+  document.getElementById('detail-unit').textContent = unit;
+
+  const badge = document.getElementById('detail-badge');
+  badge.textContent = cat === 'metabolico' ? 'Metabólico' : 'Hematológico';
+  badge.className = `category-badge badge-${cat}`;
+
+  // Destroy previous chart
+  if (detailChart) { detailChart.destroy(); detailChart = null; }
+
+  // Compute ref bounds (use most recent with ref)
+  const refPt = [...pts].reverse().find(p => p.ref_min !== null || p.ref_max !== null) || pts[pts.length - 1];
+  const ref_min = refPt.ref_min;
+  const ref_max = refPt.ref_max;
+
+  // Main data points with colors
+  const pointColors = pts.map(p => COLOR_MAP[getSemaphore(p.valor, p.ref_min, p.ref_max)]);
+
+  // Compute y-axis padding
+  const allVals = pts.map(p => p.valor);
+  const dataMin = Math.min(...allVals);
+  const dataMax = Math.max(...allVals);
+
+  // Compute chart min/max including ref zones
+  let chartMin = dataMin;
+  let chartMax = dataMax;
+  if (ref_min !== null) { chartMin = Math.min(chartMin, ref_min); }
+  if (ref_max !== null) { chartMax = Math.max(chartMax, ref_max); }
+  const pad = (chartMax - chartMin) * 0.15 || chartMin * 0.1;
+  chartMin = chartMin - pad;
+  chartMax = chartMax + pad;
+
+  // Build reference band datasets
+  const refDatasets = [];
+
+  if (ref_min !== null && ref_max !== null) {
+    // Green band between ref_min and ref_max
+    refDatasets.push({
+      label: 'Ref. Normal',
+      data: pts.map(p => ({ x: p.date, y: ref_max })),
+      borderWidth: 0,
+      pointRadius: 0,
+      fill: { target: { value: ref_min }, above: 'rgba(0,200,83,0.10)', below: 'transparent' },
+      backgroundColor: 'rgba(0,200,83,0.10)',
+      tension: 0,
+    });
+    // Yellow warning zone below ref_min
+    const warn10Min = ref_min - (ref_max - ref_min) * 0.1;
+    refDatasets.push({
+      label: 'Zona Atenção (min)',
+      data: pts.map(p => ({ x: p.date, y: ref_min })),
+      borderWidth: 0,
+      pointRadius: 0,
+      fill: { target: { value: warn10Min }, above: 'rgba(255,214,0,0.08)', below: 'transparent' },
+      backgroundColor: 'rgba(255,214,0,0.08)',
+      tension: 0,
+    });
+    // Yellow warning zone above ref_max
+    const warn10Max = ref_max + (ref_max - ref_min) * 0.1;
+    refDatasets.push({
+      label: 'Zona Atenção (max)',
+      data: pts.map(p => ({ x: p.date, y: warn10Max })),
+      borderWidth: 0,
+      pointRadius: 0,
+      fill: { target: { value: ref_max }, above: 'rgba(255,214,0,0.08)', below: 'transparent' },
+      backgroundColor: 'rgba(255,214,0,0.08)',
+      tension: 0,
+    });
+  } else if (ref_max !== null) {
+    // One-sided: only max (e.g. Colesterol, LDL, Triglicérides)
+    refDatasets.push({
+      label: 'Limite Máx',
+      data: pts.map(p => ({ x: p.date, y: ref_max })),
+      borderColor: 'rgba(0,200,83,0.4)',
+      borderWidth: 1,
+      borderDash: [4, 4],
+      pointRadius: 0,
+      fill: false,
+      tension: 0,
+    });
+  } else if (ref_min !== null) {
+    // One-sided: only min (e.g. HDL)
+    refDatasets.push({
+      label: 'Limite Mín',
+      data: pts.map(p => ({ x: p.date, y: ref_min })),
+      borderColor: 'rgba(0,200,83,0.4)',
+      borderWidth: 1,
+      borderDash: [4, 4],
+      pointRadius: 0,
+      fill: false,
+      tension: 0,
+    });
+  }
+
+  const mainDataset = {
+    label: displayName,
+    data: pts.map(p => ({ x: p.date, y: p.valor })),
+    borderColor: '#64B5F6',
+    borderWidth: 2,
+    pointBackgroundColor: pointColors,
+    pointBorderColor: pointColors,
+    pointRadius: 6,
+    pointHoverRadius: 8,
+    tension: 0.3,
+    fill: false,
+    order: 1,
+  };
+
+  const ctx = document.getElementById('detail-chart').getContext('2d');
+  detailChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [...refDatasets, mainDataset],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1a2e',
+          borderColor: '#2a2a4a',
+          borderWidth: 1,
+          titleColor: '#e0e0e0',
+          bodyColor: '#aaa',
+          callbacks: {
+            title(items) {
+              const raw = items[0].raw;
+              if (!raw || !raw.x) return '';
+              return fmtDate(raw.x);
+            },
+            label(item) {
+              if (item.datasetIndex !== refDatasets.length) return null;
+              const raw = item.raw;
+              const idx = item.dataIndex;
+              const pt = pts[idx];
+              return [
+                `${displayName}: ${fmtVal(raw.y)} ${unit}`,
+                `Lab: ${pt.laboratorio}`,
+                `Pedido: ${pt.arquivo.replace(/\.pdf$/i, '')}`,
+              ];
+            },
+            afterLabel(item) { return null; }
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'year', displayFormats: { year: 'yyyy', month: 'MM/yyyy' } },
+          ticks: { color: '#888', font: { family: 'Inter', size: 11 } },
+          grid: { color: '#1e1e3a' },
+        },
+        y: {
+          min: chartMin,
+          max: chartMax,
+          ticks: {
+            color: '#888',
+            font: { family: 'Inter', size: 11 },
+            callback(val) { return fmtVal(val); }
+          },
+          grid: { color: '#1e1e3a' },
+        }
+      }
+    }
+  });
+
+  // Stats
+  const vals = pts.map(p => p.valor);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+  const statsGrid = document.getElementById('stats-grid');
+  statsGrid.innerHTML = `
+    <div class="stat-card">
+      <div class="s-label">Mínimo</div>
+      <div class="s-value">${fmtVal(min)} <small style="font-size:0.65rem;color:#888">${unit}</small></div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Máximo</div>
+      <div class="s-value">${fmtVal(max)} <small style="font-size:0.65rem;color:#888">${unit}</small></div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Média</div>
+      <div class="s-value">${fmtVal(parseFloat(avg.toFixed(2)))} <small style="font-size:0.65rem;color:#888">${unit}</small></div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Medições</div>
+      <div class="s-value">${pts.length}</div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Período</div>
+      <div class="s-value" style="font-size:0.78rem">${fmtDate(pts[0].date)} – ${fmtDate(pts[pts.length-1].date)}</div>
+    </div>
+  `;
+
+  detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.getElementById('back-btn').addEventListener('click', () => {
+  document.getElementById('detail').classList.remove('visible');
+  document.getElementById('overview').style.display = '';
+  if (detailChart) { detailChart.destroy(); detailChart = null; }
+});
+</script>
+</div><!-- /main-app -->
+</body>
+</html>
